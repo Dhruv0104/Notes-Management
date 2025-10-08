@@ -22,7 +22,7 @@ const routes = createBrowserRouter([
 		element: <Register />,
 	},
 	{
-		path: '/users',
+		path: '/user',
 		// loader: verifyLoader('admin'),
 		errorElement: <ErrorElement />,
 		children: [{ path: 'notes', element: <Notes /> }],
