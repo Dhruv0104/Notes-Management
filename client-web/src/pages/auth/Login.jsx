@@ -125,7 +125,7 @@ const Login = () => {
 							</button>
 						</span>
 					</div>
-					<div className="mt-4 flex flex-col items-end gap-2">
+					{/* <div className="mt-4 flex flex-col items-end gap-2">
 						<Button
 							label={
 								<span className="flex items-center gap-2">
@@ -137,7 +137,7 @@ const Login = () => {
 							className="text-primary hover:text-[#2a547a] bg-transparent border-none px-1 py-0 font-medium transform hover:scale-105 focus:ring-2 focus:ring-primary rounded"
 							text
 						/>
-					</div>
+					</div> */}
 				</div>
 			</div>
 		</>
