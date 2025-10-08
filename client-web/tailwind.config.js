@@ -36,7 +36,7 @@ export default {
 			keyframes: {
 				typing: {
 					'from': { width: '0' },
-					'to': { width: '18ch' },
+					'to': { width: '17ch' },
 					'100%': { 'border-color': 'transparent' },
 				},
 			},
