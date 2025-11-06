@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const md5 = require('md5');
-const userModel = require('../models/user.model');
+const prisma = require('../utils/prisma');
 // const { sendResetPasswordEmail } = require('../utils/mailer');
 
 async function login(req, res) {
@@ -9,12 +9,14 @@ async function login(req, res) {
 	if (!username || !password)
 		return res.status(400).json({ success: false, message: 'username and password required' });
 
-	let user = await userModel.findOne({ username: username, password: md5(password) });
+	let user = await prisma.user.findFirst({
+		where: { username, password: md5(password) },
+	});
 	if (!user) return res.status(404).json({ message: 'User not found' });
 
 	const token = jwt.sign(
 		{
-			_id: user._id,
+			id: user.id,
 			permissions: user.permissions,
 			role: user.role,
 		},
@@ -28,7 +30,7 @@ async function login(req, res) {
 			token,
 			username: user.username,
 			role: user.role,
-			_id: user._id,
+			id: user.id,
 		},
 	});
 }
@@ -40,21 +42,18 @@ async function register(req, res) {
 			.status(400)
 			.json({ success: false, message: 'username and password are required' });
 	}
-	const existingUser = await userModel.findOne({ username });
+	const existingUser = await prisma.user.findUnique({ where: { username } });
 	if (existingUser) {
 		return res.status(409).json({ success: false, message: 'Username already exists' });
 	}
-	const newUser = new userModel({
-		username,
-		password: md5(password),
-		role: 'USER',
+	await prisma.user.create({
+		data: { username, password: md5(password), role: 'USER' },
 	});
-	await newUser.save();
 	return res.status(201).json({ success: true, message: 'User registered successfully' });
 }
 
 async function logout(req, res) {
-	await userModel.updateOne({ _id: req.body._id }, { currentToken: null });
+	await userModel.updateOne({ id: req.body.id }, { currentToken: null });
 	res.clearCookie('auth');
 	return res.json({ success: true });
 }
@@ -76,20 +75,20 @@ async function forgotPassword(req, res) {
 
 		let profile = null;
 		if (user.role === 'STUDENT') {
-			profile = await studentModel.findOne({ userId: user._id });
+			profile = await studentModel.findOne({ userId: user.id });
 			if (!profile) {
 				console.error(
-					`Forgot password error: Student profile not found for user ${user._id}`
+					`Forgot password error: Student profile not found for user ${user.id}`
 				);
 				return res
 					.status(404)
 					.json({ success: false, message: 'Student profile not found' });
 			}
 		} else if (user.role === 'AUTHORITY') {
-			profile = await facultyModel.findOne({ userId: user._id });
+			profile = await facultyModel.findOne({ userId: user.id });
 			if (!profile) {
 				console.error(
-					`Forgot password error: Authority profile not found for user ${user._id}`
+					`Forgot password error: Authority profile not found for user ${user.id}`
 				);
 				return res
 					.status(404)
@@ -108,7 +107,7 @@ async function forgotPassword(req, res) {
 
 		const newPassword = generateTempPassword();
 		await userModel.updateOne(
-			{ _id: user._id },
+			{ id: user.id },
 			{ password: md5(newPassword) } // Hashing with md5 to match login logic
 		);
 
@@ -134,7 +133,7 @@ async function verify(req, res) {
 	}
 	try {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		const user = await userModel.findById(decoded._id);
+		const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 		if (!user || user.currentToken !== token) {
 			return res.status(401).json({ error: 'Invalid or expired token' });
 		}
@@ -144,7 +143,7 @@ async function verify(req, res) {
 			data: {
 				username: user.username,
 				role: user.role,
-				_id: user._id,
+				id: user.id,
 			},
 		});
 	} catch (err) {

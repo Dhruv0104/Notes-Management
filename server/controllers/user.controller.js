@@ -1,4 +1,4 @@
-const noteModel = require('../models/note.model');
+const prisma = require('../utils/prisma');
 
 async function addNote(req, res) {
 	const { title, description, tags } = req.body;
@@ -10,9 +10,8 @@ async function addNote(req, res) {
 	}
 
 	// ✅ Check if note with same title exists for this user
-	const existingNote = await noteModel.findOne({
-		title: { $regex: new RegExp(`^${title.trim()}$`, 'i') },
-		userId: res.locals.user._id,
+	const existingNote = await prisma.note.findFirst({
+		where: { title: title.trim(), userId: res.locals.user.id },
 	});
 
 	if (existingNote) {
@@ -22,14 +21,9 @@ async function addNote(req, res) {
 	}
 
 	// ✅ If not exist, create new
-	const newNote = new noteModel({
-		title: title.trim(),
-		description,
-		tags,
-		userId: res.locals.user._id,
+	const newNote = await prisma.note.create({
+		data: { title, description, tags, userId: res.locals.user.id },
 	});
-
-	await newNote.save();
 
 	return res.status(201).json({
 		success: true,
@@ -39,15 +33,16 @@ async function addNote(req, res) {
 }
 
 async function getNotes(req, res) {
-	const notes = await noteModel
-		.find({ userId: res.locals.user._id, isActive: true })
-		.sort({ updatedAt: -1 });
+	const notes = await prisma.note.findMany({
+		where: { userId: res.locals.user.id, isActive: true },
+		orderBy: { updatedAt: 'desc' },
+	});
 	return res.json({ success: true, notes });
 }
 
 async function getNoteById(req, res) {
 	const { noteId } = req.params;
-	const note = await noteModel.findOne({ _id: noteId, userId: res.locals.user._id });
+	const note = await noteModel.findOne({ id: noteId, userId: res.locals.user.id });
 	if (!note) {
 		return res.status(404).json({ success: false, message: 'Note not found' });
 	}
@@ -58,26 +53,38 @@ async function updateNote(req, res) {
 	const { noteId } = req.params;
 	const { title, description, tags } = req.body;
 
-	const updatedNote = await noteModel.findOneAndUpdate(
-		{ _id: noteId, userId: res.locals.user._id },
-		{ title, description, tags },
-		{ new: true }
-	);
+	try {
+		// Ensure the note belongs to user
+		const note = await prisma.note.findFirst({
+			where: { id: parseInt(noteId), userId: res.locals.user.id },
+		});
 
-	if (!updatedNote) {
-		return res.status(404).json({ success: false, message: 'Note not found' });
+		if (!note) {
+			return res.status(404).json({ success: false, message: 'Note not found' });
+		}
+
+		const updatedNote = await prisma.note.update({
+			where: { id: parseInt(noteId) },
+			data: { title, description, tags },
+		});
+
+		return res.json({
+			success: true,
+			message: 'Note updated successfully',
+			note: updatedNote,
+		});
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json({ success: false, message: 'Failed to update note' });
 	}
-
-	return res.json({ success: true, message: 'Note updated successfully', note: updatedNote });
 }
 
 async function deleteNote(req, res) {
 	const { noteId } = req.params;
-	const deletedNote = await noteModel.findOneAndUpdate(
-		{ _id: noteId, userId: res.locals.user._id },
-		{ isActive: false },
-		{ new: true }
-	);
+	const deletedNote = await prisma.note.update({
+		where: { id: parseInt(noteId) },
+		data: { isActive: false },
+	});
 	if (!deletedNote) {
 		return res.status(404).json({ success: false, message: 'Note not found' });
 	}

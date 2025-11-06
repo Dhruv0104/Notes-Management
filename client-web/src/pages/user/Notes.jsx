@@ -101,7 +101,7 @@ export default function Notes() {
 			};
 
 			const res = await fetchPost({
-				pathName: `user/update-note/${selectedNote._id}`,
+				pathName: `user/update-note/${selectedNote.id}`,
 				body: JSON.stringify(body),
 			});
 
@@ -233,7 +233,7 @@ export default function Notes() {
 						<div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
 							{filteredNotes.map((note) => (
 								<div
-									key={note._id}
+									key={note.id}
 									onClick={() => handleEdit(note)}
 									className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg transition relative cursor-pointer overflow-hidden flex flex-col justify-between h-full"
 								>
@@ -276,7 +276,7 @@ export default function Notes() {
 											className="text-red-500 hover:text-red-700"
 											onClick={(e) => {
 												e.stopPropagation();
-												handleDelete(note._id);
+												handleDelete(note.id);
 											}}
 										/>
 									</div>

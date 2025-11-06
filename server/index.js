@@ -6,7 +6,8 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 
-const { dbConnect } = require('./utils/db.utils');
+// const { dbConnect } = require('./utils/db.utils');
+const prisma = require('./utils/prisma');
 const { errorHandler, asyncRouteHandler } = require('./utils/route.utils');
 
 // include routes here
@@ -40,13 +41,18 @@ app.use('/user', userRoutes);
 
 app.use(errorHandler);
 
-dbConnect()
-	.then(() => {
+async function startServer() {
+	try {
+		await prisma.$connect(); // ✅ Connect PostgreSQL
+		console.log('✅ Connected to PostgreSQL via Prisma');
+
 		app.listen(process.env.PORT, () => {
-			console.log('http://localhost:5000/');
+			console.log(`🚀 Server running at http://localhost:${process.env.PORT}`);
 		});
-	})
-	.catch((err) => {
-		console.log(err);
-		console.log('DB ERROR');
-	});
+	} catch (error) {
+		console.error('❌ Database connection failed:', error);
+		process.exit(1);
+	}
+}
+
+startServer();

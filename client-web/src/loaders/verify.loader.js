@@ -36,8 +36,8 @@ export const verifyLoader = (expectedRole) => {
 		try {
 			const result = await fetchGet({ pathName: 'auth/verify', token });
 			if (!result || !result.success) {
-				const userId = localStorage.getItem('_id');
-				await fetchPost({ pathName: 'auth/logout', body: JSON.stringify({ _id: userId }) });
+				const userId = localStorage.getItem('id');
+				await fetchPost({ pathName: 'auth/logout', body: JSON.stringify({ id: userId }) });
 				localStorage.clear();
 				return redirect('/login');
 			}
